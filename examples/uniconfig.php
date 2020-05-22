@@ -43,7 +43,7 @@ return [
     // 与业务相关参数
     'notify_url' => 'https://wxecardservice.shnu.edu.cn/Alipay/TestPay/Notify',//回调地址
     'return_url' => 'https://wxecardservice.shnu.edu.cn/Alipay/TestPay/Notify',//前台通知地址
-    //'return_raw'                => false,// 在处理回调时，是否直接返回原始数据，默认为 true
+    
     //代理配置
     'https_proxy' => 'https://172.20.40.43:8090',//https代理
     'http_proxy'  => '',//http代理
