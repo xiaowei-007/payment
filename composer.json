@@ -25,6 +25,6 @@
         "codeception/codeception": "*"
     },
     "autoload": {
-        "psr-4": {"Payment\\": "src/"}
+        "psr-4": {"payment\\": "src/"}
     }
 }
