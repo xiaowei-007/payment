@@ -12,13 +12,12 @@
 namespace Payment\Gateways\Union;
 
 use Payment\Exceptions\GatewayException;
+use Payment\Helpers\CertUtil;
 use Payment\Payment;
 
 /**
  * @package Payment\Gateways\Alipay
- * @author  : Leo
- * @email   : dayugog@gmail.com
- * @date    : 2020/2/2 9:56 下午
+ * @author  : xiaowei
  * @version : 1.0.0
  * @desc    : 处理notify的问题
  **/
@@ -35,28 +34,31 @@ class Notify extends UnionBaseObject
             throw new GatewayException('the notify data is empty', Payment::NOTIFY_DATA_EMPTY);
         }
 
-        if (isset($resArr['notify_type']) && isset($resArr['trade_status'])) {
-            $notifyWay = 'async'; // 异步
-        } else {
-            $notifyWay = 'sync'; // 同步
+        if (!is_array($resArr) || $resArr['respCode'] !== self::REQ_SUC || $resArr['respMsg'] == 'success') {
+            throw new GatewayException($this->getErrorMsg($resArr), Payment::GATEWAY_REFUSE, $resArr);
         }
 
-        $sign     = $resArr['sign'];
-        $signType = $resArr['sign_type'];
-        unset($resArr['sign'], $resArr['sign_type']);
-
-        if ($this->verifySignForASync($resArr, $sign, $signType) === false) {
-            throw new GatewayException('check notify data sign failed', Payment::SIGN_ERR, $resArr);
+        //签名验证
+        if (isset($resArr['signature']) && $this->verifySign($resArr) === false) {
+            throw new GatewayException('check return data sign failed', Payment::SIGN_ERR, $resArr);
         }
-
-        if (!isset($resArr['app_id']) || $resArr['app_id'] != self::$config->get('app_id', '')) {
+        // 检查商户是否正确
+        if (!isset($resArr['merId']) || $resArr['merId'] != self::$config->get('app_id', '')) {
             throw new GatewayException('mch info is error', Payment::MCH_INFO_ERR, $resArr);
         }
 
+        //卡号解密
+        if(array_key_exists ("accNo", $resArr)){
+
+            $resArr['cardNo'] = $this->decryptData($resArr['accNo']);
+
+        }
+
+        $notifyType = 'pay';//支付回调
+
         return [
-            'notify_type' => 'pay',
-            'notify_way'  => $notifyWay,
-            'notify_data' => $resArr,
+            'notify_type' => $notifyType,
+            'notify_data' => $resArr
         ];
     }
 
@@ -72,6 +74,27 @@ class Notify extends UnionBaseObject
         }
 
         return $data;
+    }
+
+    /**
+     * 卡号解密
+     * @param string $data
+     * @return string
+     * @author: XiaoWei
+     * @date 2020-06-08 16:54
+     */
+    protected function decryptData(string $data) {
+        $crypted = '';
+        try {
+            $data = base64_decode ( $data );
+            $private_key = CertUtil::getSignKeyFromPfx ( $this->signCert, $this->signCertPwd);
+            openssl_private_decrypt ( $data, $crypted, $private_key );
+        } catch (GatewayException $e) {
+            $crypted = '';
+        } catch (\Exception $e) {
+            $crypted = '';
+        }
+        return $crypted;
     }
 
     /**

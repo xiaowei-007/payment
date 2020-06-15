@@ -104,7 +104,7 @@ class UnionProxy extends BaseObject implements IPayProxy, IQueryProxy
         }
 
         // 异步 async，同步 sync
-        $flag = $callback->handle('Wechat', $data['notify_type'], 'async', $data['notify_data']);
+        $flag = $callback->handle('Union', $data['notify_type'], 'async', $data['notify_data']);
 
         return $n->response($flag);
     }
